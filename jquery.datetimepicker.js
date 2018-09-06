@@ -979,7 +979,10 @@ var datetimepickerFactory = function ($) {
 			var datetimepicker = $('<div class="xdsoft_datetimepicker xdsoft_noselect"></div>'),
 				xdsoft_copyright = $('<div class="xdsoft_copyright"><a target="_blank" href="http://xdsoft.net/jqplugins/datetimepicker/">xdsoft.net</a></div>'),
 				datepicker = $('<div class="xdsoft_datepicker active"></div>'),
-				month_picker = $('<div class="xdsoft_monthpicker"><button type="button" class="xdsoft_prev"></button><button type="button" class="xdsoft_today_button"></button>' +
+				month_picker = $('<div class="xdsoft_monthpicker">' +
+					'<button type="button" class="xdsoft_prev"></button>' +
+					'<button type="button" class="xdsoft_today_button"></button>' +
+					'<button type="button" class="xdsoft_clear_button"></button>' +
 					'<div class="xdsoft_label xdsoft_month"><span></span><i></i></div>' +
 					'<div class="xdsoft_label xdsoft_year"><span></span><i></i></div>' +
 					'<button type="button" class="xdsoft_next"></button></div>'),
@@ -1104,7 +1107,7 @@ var datetimepickerFactory = function ($) {
 				});
 
 			datetimepicker.getValue = function () {
-				return _xdsoft_datetime.getCurrentTime();
+				return options.allowBlank && input.is("[readonly]") && !input.val() ? null : _xdsoft_datetime.getCurrentTime();
 			};
 
 			datetimepicker.setOptions = function (_options) {
@@ -1227,7 +1230,7 @@ var datetimepickerFactory = function ($) {
 				if (options.value) {
 					_xdsoft_datetime.setCurrentTime(options.value);
 					if (input && input.val) {
-						input.val(_xdsoft_datetime.str);
+						input.val(_xdsoft_datetime.str());
 					}
 				}
 
@@ -1262,6 +1265,10 @@ var datetimepickerFactory = function ($) {
 				month_picker
 					.find('.xdsoft_today_button')
 					.css('visibility', !options.todayButton ? 'hidden' : 'visible');
+
+				month_picker
+					.find('.xdsoft_clear_button')
+					.toggle(options.allowBlank)
 
 				month_picker
 					.find('.' + options.prev)
@@ -1547,8 +1554,8 @@ var datetimepickerFactory = function ($) {
 
 			applyButton.on('touchend click', function (e) {//pathbrite
 				e.preventDefault();
-				datetimepicker.data('changed', true);
 				_xdsoft_datetime.setCurrentTime(getCurrentValue());
+				datetimepicker.data('changed', input.val() !== _xdsoft_datetime.str());
 				input.val(_xdsoft_datetime.str());
 				datetimepicker.trigger('close.xdsoft');
 			});
@@ -1575,6 +1582,13 @@ var datetimepickerFactory = function ($) {
 				input.trigger('change');
 				datetimepicker.trigger('close.xdsoft');
 			});
+			month_picker
+				.find('.xdsoft_clear_button')
+				.on('click', function () {
+						_xdsoft_datetime.empty();
+						input.val('').prop('checked', false);
+						datetimepicker.trigger('close.xdsoft');
+					});
 			month_picker
 				.find('.xdsoft_prev,.xdsoft_next')
 				.on('touchend mousedown.xdsoft', function () {
@@ -1976,13 +1990,13 @@ var datetimepickerFactory = function ($) {
 
 					datetimepicker.trigger('select.xdsoft', [currentTime]);
 
+					datetimepicker.data('changed', input.val() !== _xdsoft_datetime.str());
 					input.val(_xdsoft_datetime.str());
 
 					if (options.onSelectDate &&	$.isFunction(options.onSelectDate)) {
 						options.onSelectDate.call(datetimepicker, _xdsoft_datetime.currentTime, datetimepicker.data('input'), xdevent);
 					}
 
-					datetimepicker.data('changed', true);
 					datetimepicker.trigger('xchange.xdsoft');
 					datetimepicker.trigger('changedatetime.xdsoft');
 					if ((timerclick > 1 || (options.closeOnDateSelect === true || (options.closeOnDateSelect === false && !options.timepicker))) && !options.inline) {
@@ -2016,12 +2030,12 @@ var datetimepickerFactory = function ($) {
 						currentTime.setMinutes($this.data('minute'));
 						datetimepicker.trigger('select.xdsoft', [currentTime]);
 
+						datetimepicker.data('changed', input.val() !== _xdsoft_datetime.str());
 						datetimepicker.data('input').val(_xdsoft_datetime.str());
 
 						if (options.onSelectTime && $.isFunction(options.onSelectTime)) {
 							options.onSelectTime.call(datetimepicker, _xdsoft_datetime.currentTime, datetimepicker.data('input'), xdevent);
 						}
-						datetimepicker.data('changed', true);
 						datetimepicker.trigger('xchange.xdsoft');
 						datetimepicker.trigger('changedatetime.xdsoft');
 						if (options.inline !== true && options.closeOnTimeSelect === true) {
@@ -2222,7 +2236,10 @@ var datetimepickerFactory = function ($) {
 			};
 
 			datetimepicker
-				.on('open.xdsoft', function (event) {
+				.on('open.xdsoft', function (event, eventType) {
+					if (eventType === "focus" && !datetimepicker.data('input').is(":focus")) {
+						return;
+					}
 					var onShow = true;
 					if (options.onShow && $.isFunction(options.onShow)) {
 						onShow = options.onShow.call(datetimepicker, _xdsoft_datetime.currentTime, datetimepicker.data('input'), event);
@@ -2250,6 +2267,7 @@ var datetimepickerFactory = function ($) {
 						.hide();
 					if (options.onClose && $.isFunction(options.onClose)) {
 						onClose = options.onClose.call(datetimepicker, _xdsoft_datetime.currentTime, datetimepicker.data('input'), event);
+                        datetimepicker.data('changed', input.val() !== _xdsoft_datetime.str());
 					}
 					if (onClose !== false && !options.opened && !options.inline) {
 						datetimepicker.hide();
@@ -2293,7 +2311,7 @@ var datetimepickerFactory = function ($) {
 				}
 
 				if (ct && _xdsoft_datetime.isValidDate(ct)) {
-					datetimepicker.data('changed', true);
+					datetimepicker.data('changed', input.val() !== _xdsoft_datetime.str());
 				} else {
 					ct = '';
 				}
@@ -2520,6 +2538,7 @@ var datetimepickerFactory = function ($) {
 					if (!options.openOnFocus) {
 						return;
 					}
+					var eventType = event.type;
 					clearTimeout(timer);
 					timer = setTimeout(function () {
 						if (input.is(':disabled')) {
@@ -2527,11 +2546,13 @@ var datetimepickerFactory = function ($) {
 						}
 
 						triggerAfterOpen = true;
-						_xdsoft_datetime.setCurrentTime(getCurrentValue(), true);
+                        if (!input.attr("readonly")) {
+							_xdsoft_datetime.setCurrentTime(getCurrentValue(), true);
+						}
 						if(options.mask) {
 							setMask(options);
 						}
-						datetimepicker.trigger('open.xdsoft');
+						datetimepicker.trigger('open.xdsoft', eventType);
 					}, 100);
 				})
 				.on('keydown.xdsoft', function (event) {
@@ -2653,5 +2674,3 @@ var datetimepickerFactory = function ($) {
 		factory(jQuery);
 	}
 }(datetimepickerFactory));
-
-
