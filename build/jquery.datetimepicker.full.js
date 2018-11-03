@@ -1554,6 +1554,9 @@ var datetimepickerFactory = function ($) {
 						format = format.replace('Y', _this.currentTime.getFullYear() + options.yearOffset);
 						format = format.replace('y', String(_this.currentTime.getFullYear() + options.yearOffset).substring(2, 4));
 					}
+					if (format.indexOf('W')>-1) {
+					    format = format.replace('W', _this.getWeekOfYear(_this.currentTime));
+                    }
 					return dateHelper.formatDate(_this.currentTime, format);
 				};
 				_this.currentTime = this.now();
